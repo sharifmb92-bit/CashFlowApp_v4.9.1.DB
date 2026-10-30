@@ -30,5 +30,21 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Control de Nómina",
+      "short_name": "Nómina",
+      "description": "Acceso directo al saldo real y control de nómina",
+      "url": "./index.html",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Historial de Gastos",
+      "short_name": "Historial",
+      "description": "Ver la lista acumulada de gastos",
+      "url": "./index.html",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }
