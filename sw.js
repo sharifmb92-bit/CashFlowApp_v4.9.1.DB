@@ -9,7 +9,7 @@ const ASSETS_TO_CACHE = [
   './icon-512.png'
 ];
 
-// Instalación e inserción en caché de los recursos limpios
+// Instalación e inserción en caché de los recursos
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -33,7 +33,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Estrategia: Network-First con fallback a Cache
+// Manejo de peticiones: Network-First con fallback seguro a Cache
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
