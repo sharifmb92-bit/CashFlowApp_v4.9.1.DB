@@ -1,5 +1,5 @@
-// Service Worker CashFlowApp | medbasha
-const CACHE_NAME = 'cashflow-v4-9-1';
+// Service Worker CashFlowApp_v 4.9.2 | medbasha
+const CACHE_NAME = 'cashflow-v4-9-2';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -9,7 +9,7 @@ const ASSETS_TO_CACHE = [
   './icon-512.png'
 ];
 
-// Instalación e inserción en caché de los recursos
+// Instalación e inserción en caché de los recursos limpios
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -33,7 +33,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Manejo de peticiones: Network-First con fallback seguro a Cache
+// Estrategia: Network-First con fallback a Cache para soporte offline y tiempo real
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
