@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
-    <title>CashFlowApp_v 4.9.1 | medbasha</title>
+    <title>CashFlowApp_v 4.9.2 | medbasha</title>
     
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#1a1a1a">
@@ -195,7 +195,7 @@
         <div class="dashboard" id="panel-control" onclick="abrirHistorial()">
             <div class="cloud-sync-badge" id="badge-cloud-status">☁️ Off</div>
             <div class="limit-badge" id="badge-limite-fijado">Límite: 0,00 €</div>
-            <div class="app-name">CashFlowApp_v 4.9.1 | 👤 PERSONAL</div>
+            <div class="app-name">CashFlowApp_v 4.9.2 | 👤 PERSONAL</div>
             <div class="balance" id="total">0,00 €</div>
             <div class="sub-label" id="estado-texto" data-i18n="spent_accumulated">ACUMULADO GASTADO</div>
             
@@ -707,6 +707,9 @@
             try {
                 actualizarBadgeCloud("☁️ ...", "var(--yellow)");
                 
+                const nowTs = new Date().getTime();
+                saveDB('last_sync_ts_' + perfilActivoStr, nowTs);
+
                 const docData = JSON.parse(JSON.stringify({
                     cantidadMax,
                     historial,
@@ -717,7 +720,7 @@
                     ahorroReserva,
                     sobres,
                     temaActual,
-                    ultimaActualizacion: new Date().getTime()
+                    ultimaActualizacion: nowTs
                 }));
 
                 rtdb.ref(pathNode).set(docData, (error) => {
@@ -732,33 +735,43 @@
             }
         }
 
+        // ==========================================
+        // AUTO-IMPORTACIÓN REACTIVA EN TIEMPO REAL
+        // ==========================================
         function escucharSincronizacionCloud() {
             const pathNode = obtenerNodoUsuarioPath();
             if (!firebaseActivo || !rtdb || !pathNode) return;
             
             rtdb.ref(pathNode).off();
-            rtdb.ref(pathNode).on("value", (snapshot) => {
+            rtdb.ref(pathNode).on("value", async (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
-                    cantidadMax = data.cantidadMax ?? cantidadMax;
-                    historial = data.historial ?? historial;
-                    aplazados = data.aplazados ?? aplazados;
-                    historialAplazados = data.historialAplazados ?? historialAplazados;
-                    gastosFijos = data.gastosFijos ?? gastosFijos;
-                    sueldoMensual = data.sueldoMensual ?? sueldoMensual;
-                    ahorroReserva = data.ahorroReserva ?? ahorroReserva;
-                    sobres = data.sobres ?? sobres;
-                    
-                    saveDB('conf_sueldo_' + perfilActivoStr, cantidadMax);
-                    saveDB('historial_mb_' + perfilActivoStr, historial);
-                    saveDB('aplazados_mb_' + perfilActivoStr, aplazados);
-                    saveDB('historial_aplazados_mb_' + perfilActivoStr, historialAplazados);
-                    saveDB('gastos_fijos_mb_' + perfilActivoStr, gastosFijos);
-                    saveDB('sueldo_mensual_mb_' + perfilActivoStr, sueldoMensual);
-                    saveDB('ahorro_reserva_mb_' + perfilActivoStr, ahorroReserva);
-                    saveDB('sobres_mb_' + perfilActivoStr, sobres);
+                    const timestampLocal = (await getDB('last_sync_ts_' + perfilActivoStr)) || 0;
+                    const timestampNube = data.ultimaActualizacion || 0;
 
-                    renderApp();
+                    // Si la nube tiene datos más recientes o el local fue limpiado/borrado
+                    if (timestampNube >= timestampLocal || historial.length === 0) {
+                        cantidadMax = data.cantidadMax ?? cantidadMax;
+                        historial = data.historial ?? historial;
+                        aplazados = data.aplazados ?? aplazados;
+                        historialAplazados = data.historialAplazados ?? historialAplazados;
+                        gastosFijos = data.gastosFijos ?? gastosFijos;
+                        sueldoMensual = data.sueldoMensual ?? sueldoMensual;
+                        ahorroReserva = data.ahorroReserva ?? ahorroReserva;
+                        sobres = data.sobres ?? sobres;
+                        
+                        await saveDB('conf_sueldo_' + perfilActivoStr, cantidadMax);
+                        await saveDB('historial_mb_' + perfilActivoStr, historial);
+                        await saveDB('aplazados_mb_' + perfilActivoStr, aplazados);
+                        await saveDB('historial_aplazados_mb_' + perfilActivoStr, historialAplazados);
+                        await saveDB('gastos_fijos_mb_' + perfilActivoStr, gastosFijos);
+                        await saveDB('sueldo_mensual_mb_' + perfilActivoStr, sueldoMensual);
+                        await saveDB('ahorro_reserva_mb_' + perfilActivoStr, ahorroReserva);
+                        await saveDB('sobres_mb_' + perfilActivoStr, sobres);
+                        await saveDB('last_sync_ts_' + perfilActivoStr, timestampNube);
+
+                        renderApp();
+                    }
                 }
             });
         }
@@ -1319,7 +1332,6 @@
                 { key: 'super', subId: 'sub-btn-super', max: sobres.super }
             ];
 
-            // --- DIFERENCIACIÓN VISUAL DE COLORES DE SUB-INFORMACIÓN POR PERFIL ---
             const colorTextoSub = perfilActivoStr === 'secundario' ? '#00d2d3' : '#2ecc71';
 
             mapSobres.forEach(item => {
@@ -1634,7 +1646,6 @@
             document.getElementById('total').innerText = totalGastado.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
             document.getElementById('badge-limite-fijado').innerText = `Límite: ${cantidadMax.toFixed(2)} €`;
 
-            // --- IDENTIFICADOR Y COLOR DISTINTIVO POR PERFIL CON ALTO CONTRASTE ---
             const panel = document.getElementById('panel-control');
             const appNameEl = document.querySelector('.app-name');
             const esSecundario = perfilActivoStr === 'secundario';
@@ -1642,13 +1653,13 @@
             if (esSecundario) {
                 panel.style.borderBottomColor = "#00d2d3";
                 if (appNameEl) {
-                    appNameEl.innerText = "CashFlowApp_v 4.9.1 | 💼 CASA / TRABAJO";
+                    appNameEl.innerText = "CashFlowApp_v 4.9.2 | 💼 CASA / TRABAJO";
                     appNameEl.style.color = "#00d2d3";
                 }
             } else {
                 panel.style.borderBottomColor = "var(--green)";
                 if (appNameEl) {
-                    appNameEl.innerText = "CashFlowApp_v 4.9.1 | 👤 PERSONAL";
+                    appNameEl.innerText = "CashFlowApp_v 4.9.2 | 👤 PERSONAL";
                     appNameEl.style.color = "var(--grey)";
                 }
             }
@@ -2161,7 +2172,7 @@
             const hoy = new Date();
             const fechaActual = hoy.toISOString().split('T')[0];
             const data = { 
-                version: "4.9.1",
+                version: "4.9.2",
                 fechaExportacion: fechaActual,
                 perfil: perfilActivoStr,
                 claveVinculada,
@@ -2239,6 +2250,9 @@
             event.target.value = "";
         }
 
+        // ==========================================
+        // AUTO-EXPORTACIÓN AUTOMÁTICA TRAS CAMBIOS
+        // ==========================================
         async function guardarYRefrescar() {
             await saveDB('historial_mb_' + perfilActivoStr, historial);
             await saveDB('aplazados_mb_' + perfilActivoStr, aplazados);
