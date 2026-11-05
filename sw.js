@@ -1,5 +1,5 @@
 // Service Worker CashFlowApp | medbasha
-const CACHE_NAME = 'cashflow-v4-9-2';
+const CACHE_NAME = 'cashflow-v4-9-1';
 
 const ASSETS_TO_CACHE = [
   './',
